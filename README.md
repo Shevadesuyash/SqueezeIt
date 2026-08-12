@@ -4,7 +4,7 @@
 
 ![SqueezeIt Banner](https://img.shields.io/badge/SqueezeIt-v1.0-6c63ff?style=for-the-badge&logo=java&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-17+-orange?style=for-the-badge&logo=openjdk&logoColor=white)
-![JavaFX](https://img.shields.io/badge/JavaFX-21-blue?style=for-the-badge)
+![JavaFX](https://img.shields.io/badge/JavaFX-21.0.2-blue?style=for-the-badge)
 ![PDFBox](https://img.shields.io/badge/PDFBox-3.0.2-red?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 ![Privacy](https://img.shields.io/badge/100%25-Private%20%7C%20No%20Uploads-00d4aa?style=for-the-badge)
@@ -90,8 +90,12 @@ SqueezeIt/
 │
 ├── pom.xml                          # Maven configuration & dependencies
 ├── run.bat                          # One-click Windows launcher
+├── .gitignore                       # Java/Maven standard ignores
 ├── .mvn/
 │   └── maven.config                 # Auto-injects -Djavafx.platform=win
+├── docs/
+│   └── screenshots/
+│       └── squeezeit-ui.png         # App screenshot used in README
 │
 └── src/
     └── main/
@@ -182,7 +186,7 @@ Save final PDF
 
 1. Launch `run.bat` or `mvn javafx:run`
 2. **Drag** image files onto the drop zone **or** click the zone to browse
-3. Select **Output Format**: `JPEG`, `PNG`, or `WEBP`
+3. Select **Output Format**: `JPEG`, `PNG`, `WEBP`, or `PDF`
 4. Drag the **Target File Size** slider (50 KB → 10 MB)
 5. Click **⚡ Compress Files**
 6. Output files are saved **next to the originals** as `filename_squeezed.jpg`
@@ -242,7 +246,9 @@ private static final float MARGIN = 28f;  // ~10 mm in PDF points
 
 ### `${javafx.platform}` dependency error
 > **Cause:** Maven can't resolve JavaFX native JARs without knowing the OS.  
-> **Fix:** Already handled by `.mvn/maven.config` which injects `-Djavafx.platform=win` automatically. If you're on Linux/macOS, change `win` to `linux` or `mac`.
+> **Fix:** Already handled by `.mvn/maven.config` which injects `-Djavafx.platform=win` automatically.
+> This applies only to `mvn javafx:run`. The `run.bat` launcher calls `java` directly with hard-coded Windows JARs — this error cannot occur when using `run.bat`.
+> If you're on Linux/macOS with Maven, change `win` to `linux` or `mac` in `.mvn/maven.config`.
 
 ### `No ImageWriter found for format: WEBP`
 > **Cause:** TwelveMonkeys WebP writer not on classpath.  
