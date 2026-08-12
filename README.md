@@ -33,36 +33,14 @@
 
 ## 🖥️ Screenshots
 
-> *Dark-mode interface with split panel layout — drop zone on the left, settings on the right.*
+<div align="center">
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  SqueezeIt                                               v1.0   │
-│  Local Photo & PDF Compressor · 100% Private                    │
-├──────────────────────────────────┬──────────────────────────────┤
-│  Input Files                     │  Compression Settings        │
-│                                  │                              │
-│  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐   │  Output Format               │
-│     ⬇  Drop files here          │  ┌──────────────────────┐    │
-│  │  or click to browse      │   │  │  JPEG            ▼   │    │
-│     JPEG · PNG · WEBP · PDF     │  └──────────────────────┘    │
-│  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘   │                              │
-│                                  │  Target File Size            │
-│  Queued Files                    │  50KB ──●──────────── 10MB  │
-│  ┌──────────────────────────┐    │         Target: 1.0 MB       │
-│  │ vacation.jpg  [2.4 MB]   │    │                              │
-│  │ report.pdf    [1.8 MB]   │    │  ┌──────────────────────┐   │
-│  │ photo.png     [890 KB]   │    │  │ ℹ How it works        │   │
-│  └──────────────────────────┘    │  │ Binary-search quality │   │
-│                                  │  │ loop, 100% local...   │   │
-│  [ 🗑 Clear Queue ]              │  └──────────────────────┘   │
-│                                  │                              │
-│                                  │  [ ⚡ Compress Files ]       │
-├──────────────────────────────────┴──────────────────────────────┤
-│  Ready.                                                         │
-│  ████████████████████████░░░░░░░░░░░░░░  (progress bar)        │
-└─────────────────────────────────────────────────────────────────┘
-```
+![SqueezeIt App — Dark-mode interface with split panel layout, drop zone on the left and compression settings on the right](docs/screenshots/squeezeit-ui.png)
+
+*SqueezeIt v1.0 — Dark-mode interface · 1 file queued · JPEG compression at 976.6 KB target · binary-search quality loop running*
+
+</div>
+
 
 ---
 
