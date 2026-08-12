@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.squeezeit.MainController"
+            styleClass="root-pane">
+
+    <!-- ══════════════════════════════════════════════════════════════
+         TOP HEADER
+         ══════════════════════════════════════════════════════════════ -->
+    <top>
+        <HBox styleClass="header-bar" alignment="CENTER_LEFT" spacing="12">
+            <padding><Insets top="18" right="28" bottom="18" left="28"/></padding>
+            <VBox spacing="2">
+                <Label text="SqueezeIt" styleClass="app-title"/>
+                <Label text="Local Photo &amp; PDF Compressor · 100% Private" styleClass="app-subtitle"/>
+            </VBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="v1.0" styleClass="version-badge"/>
+        </HBox>
+    </top>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CENTRE CONTENT
+         ══════════════════════════════════════════════════════════════ -->
+    <center>
+        <HBox spacing="20" styleClass="content-area">
+            <padding><Insets top="20" right="28" bottom="20" left="28"/></padding>
+
+            <!-- ── LEFT PANEL: Drop Zone + File List ─────────────────── -->
+            <VBox spacing="14" HBox.hgrow="ALWAYS" styleClass="panel">
+                <Label text="Input Files" styleClass="section-title"/>
+
+                <!-- Drag-and-drop zone -->
+                <VBox fx:id="dropZone"
+                      styleClass="drop-zone"
+                      alignment="CENTER"
+                      spacing="10"
+                      minHeight="160"
+                      onDragOver="#onDragOver"
+                      onDragExited="#onDragExited"
+                      onDragDropped="#onDragDropped">
+                    <Label text="⬇" styleClass="drop-icon"/>
+                    <Label fx:id="dropZoneLabel"
+                           text="Drop files here  or  click to browse"
+                           styleClass="drop-label"/>
+                    <Label text="JPEG · PNG · WEBP · PDF" styleClass="drop-hint"/>
+                </VBox>
+
+                <!-- Queued file list -->
+                <Label text="Queued Files" styleClass="section-subtitle"/>
+                <ListView fx:id="fileListView"
+                          styleClass="file-list"
+                          VBox.vgrow="ALWAYS"
+                          minHeight="160">
+                    <placeholder>
+                        <Label text="No files queued yet" styleClass="drop-hint"/>
+                    </placeholder>
+                </ListView>
+
+                <!-- Clear button -->
+                <Button fx:id="clearButton"
+                        text="🗑  Clear Queue"
+                        styleClass="btn-secondary"
+                        onAction="#onClearClicked"
+                        maxWidth="Infinity"/>
+            </VBox>
+
+            <!-- ── RIGHT PANEL: Settings + Controls ──────────────────── -->
+            <VBox spacing="18" minWidth="280" maxWidth="320" styleClass="panel">
+                <Label text="Compression Settings" styleClass="section-title"/>
+
+                <!-- Format selector -->
+                <VBox spacing="6">
+                    <Label text="Output Format" styleClass="field-label"/>
+                    <ComboBox fx:id="formatCombo"
+                              maxWidth="Infinity"
+                              styleClass="combo-field"
+                              promptText="Select format…"/>
+                </VBox>
+
+                <!-- Target size slider -->
+                <VBox spacing="6">
+                    <Label text="Target File Size" styleClass="field-label"/>
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <Label text="50 KB" styleClass="slider-limit"/>
+                        <Slider fx:id="sizeSlider"
+                                HBox.hgrow="ALWAYS"
+                                styleClass="size-slider"
+                                showTickLabels="false"
+                                showTickMarks="false"/>
+                        <Label text="10 MB" styleClass="slider-limit"/>
+                    </HBox>
+                    <HBox alignment="CENTER" spacing="4">
+                        <Label text="Target:" styleClass="slider-label"/>
+                        <Label fx:id="sizeLabel" text="1.0 MB" styleClass="slider-value"/>
+                    </HBox>
+                </VBox>
+
+                <!-- Info card -->
+                <VBox styleClass="info-card" spacing="6">
+                    <padding><Insets top="12" right="14" bottom="12" left="14"/></padding>
+                    <Label text="ℹ  How it works" styleClass="info-title"/>
+                    <Label wrapText="true" styleClass="info-body"
+                           text="SqueezeIt uses a binary-search quality loop to find the highest possible quality that fits within your chosen size budget. All processing is 100% local — no uploads, no data leaves your machine."/>
+                </VBox>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <!-- Process button -->
+                <Button fx:id="processButton"
+                        text="⚡  Compress Files"
+                        styleClass="btn-primary"
+                        onAction="#onProcessClicked"
+                        maxWidth="Infinity"
+                        minHeight="46"/>
+            </VBox>
+        </HBox>
+    </center>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         BOTTOM STATUS BAR
+         ══════════════════════════════════════════════════════════════ -->
+    <bottom>
+        <VBox styleClass="status-bar" spacing="6">
+            <padding><Insets top="10" right="28" bottom="14" left="28"/></padding>
+
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label fx:id="statusLabel" text="Ready." styleClass="status-label" HBox.hgrow="ALWAYS"/>
+            </HBox>
+
+            <ProgressBar fx:id="progressBar"
+                         progress="0"
+                         maxWidth="Infinity"
+                         styleClass="main-progress"/>
+
+            <Label fx:id="resultLabel" text="" styleClass="result-label" wrapText="true"/>
+        </VBox>
+    </bottom>
+
+</BorderPane>
