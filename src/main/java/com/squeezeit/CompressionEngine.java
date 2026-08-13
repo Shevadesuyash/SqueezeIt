@@ -25,6 +25,7 @@ import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.rendering.PDFRenderer;
 
 /**
  * Core compression engine for SqueezeIt.
@@ -575,10 +576,127 @@ public final class CompressionEngine {
 
     /**
      * Human-readable byte size string (e.g. "1.4 MB", "320 KB").
+     * Always uses {@link java.util.Locale#US} so the decimal separator is always a dot.
      */
     public static String humanSize(long bytes) {
-        if (bytes >= 1_048_576) return String.format("%.1f MB", bytes / 1_048_576.0);
-        if (bytes >= 1_024)     return String.format("%.1f KB", bytes / 1_024.0);
+        if (bytes >= 1_048_576) return String.format(java.util.Locale.US, "%.1f MB", bytes / 1_048_576.0);
+        if (bytes >= 1_024)     return String.format(java.util.Locale.US, "%.1f KB", bytes / 1_024.0);
         return bytes + " B";
     }
+
+    /* ═══════════════════════════════════════════════════════════
+       4. FORMAT CONVERSION  (no size budget — full quality)
+       ═══════════════════════════════════════════════════════════ */
+
+    /**
+     * Converts an image file to {@code format} at near-lossless quality (0.95).
+     * Optionally downscales the image by {@code scaleFactor} (e.g. 0.5 = 50%).
+     *
+     * @param inputFile       source image
+     * @param outputFile      destination file
+     * @param format          target format: "JPEG", "PNG", or "WEBP"
+     * @param scaleFactor     1.0 = original size, 0.5 = half, etc.
+     * @param progressCallback optional [0,1] callback; may be {@code null}
+     * @throws IOException on read/write failure
+     */
+    public static void convertImage(
+            File inputFile,
+            File outputFile,
+            String format,
+            double scaleFactor,
+            Consumer<Double> progressCallback) throws IOException {
+
+        notifyProgress(progressCallback, 0.05);
+
+        BufferedImage src = ImageIO.read(inputFile);
+        if (src == null) throw new IOException("Cannot decode image: " + inputFile.getName());
+
+        notifyProgress(progressCallback, 0.2);
+
+        // Optional downscale
+        if (scaleFactor < 0.99) {
+            int w = Math.max(1, (int) (src.getWidth()  * scaleFactor));
+            int h = Math.max(1, (int) (src.getHeight() * scaleFactor));
+            BufferedImage scaled = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = scaled.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g.drawImage(src, 0, 0, w, h, null);
+            g.dispose();
+            src = scaled;
+        }
+
+        notifyProgress(progressCallback, 0.5);
+
+        // Ensure RGB for JPEG/WEBP
+        if (!"PNG".equalsIgnoreCase(format)) src = toRGB(src);
+
+        // Write at high quality (0.95f)
+        byte[] data = encodeToBytes(src, format, 0.95f);
+        try (var fos = new java.io.FileOutputStream(outputFile)) {
+            fos.write(data);
+        }
+
+        notifyProgress(progressCallback, 1.0);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       5. PDF → IMAGES EXTRACTION
+       ═══════════════════════════════════════════════════════════ */
+
+    /**
+     * Renders every page of {@code inputPdf} as a raster image and saves each
+     * page to {@code outputDir} in flat naming: {@code basename_001.jpg}, etc.
+     *
+     * <p>Uses PDFBox's {@link PDFRenderer} — no external software required.
+     *
+     * @param inputPdf        source PDF
+     * @param outputDir       directory to write page images into
+     * @param imageFormat     "JPEG" or "PNG"
+     * @param dpi             render resolution (72 / 96 / 150 / 300)
+     * @param progressCallback optional [0,1] callback; may be {@code null}
+     * @return ordered list of created image files
+     * @throws IOException on read/write failure
+     */
+    public static List<File> convertPdfToImages(
+            File inputPdf,
+            File outputDir,
+            String imageFormat,
+            int dpi,
+            Consumer<Double> progressCallback) throws IOException {
+
+        List<File> outputFiles = new ArrayList<>();
+        notifyProgress(progressCallback, 0.02);
+
+        String baseName;
+        String name = inputPdf.getName();
+        int dot = name.lastIndexOf('.');
+        baseName = dot > 0 ? name.substring(0, dot) : name;
+
+        String ext = "PNG".equalsIgnoreCase(imageFormat) ? "png" : "jpg";
+        String ioFormat = "PNG".equalsIgnoreCase(imageFormat) ? "PNG" : "JPEG";
+
+        try (PDDocument doc = Loader.loadPDF(inputPdf)) {
+            PDFRenderer renderer = new PDFRenderer(doc);
+            int pageCount = doc.getNumberOfPages();
+
+            for (int i = 0; i < pageCount; i++) {
+                notifyProgress(progressCallback, 0.05 + 0.90 * ((double) i / pageCount));
+
+                BufferedImage img = renderer.renderImageWithDPI(i, dpi);
+
+                // JPEG cannot encode alpha — convert to RGB
+                if (!"PNG".equalsIgnoreCase(imageFormat)) img = toRGB(img);
+
+                String pageName = String.format("%s_%03d.%s", baseName, i + 1, ext);
+                File outFile = new File(outputDir, pageName);
+                ImageIO.write(img, ioFormat, outFile);
+                outputFiles.add(outFile);
+            }
+        }
+
+        notifyProgress(progressCallback, 1.0);
+        return outputFiles;
+    }
 }
+

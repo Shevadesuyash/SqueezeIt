@@ -19,7 +19,7 @@ public class MainApp extends Application {
     public void start(Stage primaryStage) throws IOException {
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/com/squeezeit/main-view.fxml"));
-        Scene scene = new Scene(loader.load(), 860, 680);
+        Scene scene = new Scene(loader.load(), 980, 740);
 
         // Load dark-mode stylesheet
         scene.getStylesheets().add(
@@ -35,9 +35,9 @@ public class MainApp extends Application {
             // Icon is optional – skip gracefully
         }
 
-        primaryStage.setTitle("SqueezeIt – Local File Compressor");
-        primaryStage.setMinWidth(720);
-        primaryStage.setMinHeight(560);
+        primaryStage.setTitle("SqueezeIt v1.2 – Local File Compressor");
+        primaryStage.setMinWidth(820);
+        primaryStage.setMinHeight(600);
         primaryStage.setScene(scene);
         primaryStage.show();
     }

@@ -3,45 +3,44 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.squeezeit.MainController"
             styleClass="root-pane">
 
-    <!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════
          TOP HEADER
-         ══════════════════════════════════════════════════════════════ -->
+         ══════════════════════════════════════════════════ -->
     <top>
         <HBox styleClass="header-bar" alignment="CENTER_LEFT" spacing="12">
-            <padding><Insets top="18" right="28" bottom="18" left="28"/></padding>
+            <padding><Insets top="16" right="28" bottom="16" left="28"/></padding>
             <VBox spacing="2">
                 <Label text="SqueezeIt" styleClass="app-title"/>
                 <Label text="Local Photo &amp; PDF Compressor · 100% Private" styleClass="app-subtitle"/>
             </VBox>
             <Region HBox.hgrow="ALWAYS"/>
-            <Label text="v1.1" styleClass="version-badge"/>
+            <Label text="v1.2" styleClass="version-badge"/>
         </HBox>
     </top>
 
-    <!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════
          CENTRE CONTENT
-         ══════════════════════════════════════════════════════════════ -->
+         ══════════════════════════════════════════════════ -->
     <center>
-        <HBox spacing="20" styleClass="content-area">
-            <padding><Insets top="20" right="28" bottom="20" left="28"/></padding>
+        <HBox spacing="18" styleClass="content-area">
+            <padding><Insets top="18" right="24" bottom="18" left="24"/></padding>
 
-            <!-- ── LEFT PANEL: Drop Zone + File List + Size Preview ──── -->
-            <VBox spacing="14" HBox.hgrow="ALWAYS" styleClass="panel">
+            <!-- ── LEFT PANEL: Drop Zone · File List · Results ────── -->
+            <VBox spacing="10" HBox.hgrow="ALWAYS" styleClass="panel">
                 <Label text="Input Files" styleClass="section-title"/>
 
                 <!-- Drag-and-drop zone -->
                 <VBox fx:id="dropZone"
                       styleClass="drop-zone"
                       alignment="CENTER"
-                      spacing="10"
-                      minHeight="150"
+                      spacing="8"
+                      minHeight="110"
                       onDragOver="#onDragOver"
                       onDragExited="#onDragExited"
                       onDragDropped="#onDragDropped">
@@ -52,19 +51,28 @@
                     <Label text="JPEG · PNG · WEBP · PDF" styleClass="drop-hint"/>
                 </VBox>
 
-                <!-- Queued file list -->
-                <Label text="Queued Files" styleClass="section-subtitle"/>
+                <!-- File list header + per-file remove -->
+                <HBox alignment="CENTER_LEFT" spacing="8">
+                    <Label text="Queued Files" styleClass="section-subtitle" HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="removeSelectedBtn"
+                            text="✕  Remove"
+                            styleClass="btn-remove"
+                            onAction="#onRemoveSelectedClicked"
+                            disable="true"/>
+                </HBox>
+
                 <ListView fx:id="fileListView"
                           styleClass="file-list"
                           VBox.vgrow="ALWAYS"
-                          minHeight="130">
+                          minHeight="110">
                     <placeholder>
                         <Label text="No files queued yet" styleClass="drop-hint"/>
                     </placeholder>
                 </ListView>
 
-                <!-- ── Size Preview Card ─────────────────────────────── -->
-                <VBox fx:id="previewCard" styleClass="preview-card" spacing="6" managed="false" visible="false">
+                <!-- Size Preview Card (shown when files queued + Compress mode) -->
+                <VBox fx:id="previewCard" styleClass="preview-card" spacing="6"
+                      managed="false" visible="false">
                     <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
                     <Label text="📊  Size Estimate" styleClass="preview-title"/>
                     <HBox spacing="14" alignment="CENTER_LEFT">
@@ -84,58 +92,137 @@
                     </HBox>
                 </VBox>
 
-                <!-- Clear button -->
-                <Button fx:id="clearButton"
-                        text="🗑  Clear Queue"
-                        styleClass="btn-secondary"
-                        onAction="#onClearClicked"
-                        maxWidth="Infinity"/>
+                <!-- Results section (shown after compression) -->
+                <Label fx:id="resultsHeader"
+                       text="✅  Results"
+                       styleClass="section-subtitle"
+                       managed="false" visible="false"/>
+                <ScrollPane fx:id="resultsScroll"
+                            styleClass="results-scroll"
+                            fitToWidth="true"
+                            maxHeight="200"
+                            managed="false" visible="false">
+                    <VBox fx:id="resultsPane" styleClass="results-pane" spacing="4">
+                        <padding><Insets top="4" right="6" bottom="4" left="6"/></padding>
+                    </VBox>
+                </ScrollPane>
+
+                <!-- Bottom actions -->
+                <HBox spacing="8">
+                    <Button fx:id="clearButton"
+                            text="🗑  Clear Queue"
+                            styleClass="btn-secondary"
+                            onAction="#onClearClicked"
+                            HBox.hgrow="ALWAYS"
+                            maxWidth="Infinity"/>
+                </HBox>
             </VBox>
 
-            <!-- ── RIGHT PANEL: Settings + Controls ──────────────────── -->
-            <VBox spacing="16" minWidth="290" maxWidth="330" styleClass="panel">
-                <Label text="Compression Settings" styleClass="section-title"/>
+            <!-- ── RIGHT PANEL: Operation Mode + Settings ─────────── -->
+            <VBox spacing="11" minWidth="316" maxWidth="350" styleClass="panel">
 
-                <!-- Format selector -->
-                <VBox spacing="6">
-                    <Label text="Output Format" styleClass="field-label"/>
-                    <ComboBox fx:id="formatCombo"
-                              maxWidth="Infinity"
-                              styleClass="combo-field"
-                              promptText="Select format…"/>
+                <!-- ─ Operation Mode ─────────────────────────────── -->
+                <Label text="Operation Mode" styleClass="field-label"/>
+
+                <HBox styleClass="mode-toggle-bar" spacing="0" fillHeight="true">
+                    <ToggleButton fx:id="compressToggle"
+                                  text="⚡  Compress"
+                                  styleClass="toggle-btn,toggle-first"
+                                  selected="true"
+                                  HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ToggleButton fx:id="convertToggle"
+                                  text="🔄  Convert"
+                                  styleClass="toggle-btn,toggle-mid"
+                                  HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ToggleButton fx:id="extractToggle"
+                                  text="📄  Extract"
+                                  styleClass="toggle-btn,toggle-last"
+                                  HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+                <!-- ─ COMPRESS PANEL ─────────────────────────────── -->
+                <VBox fx:id="compressPanel" spacing="10">
+                    <VBox spacing="5">
+                        <Label text="Output Format" styleClass="field-label"/>
+                        <ComboBox fx:id="compressFormatCombo"
+                                  maxWidth="Infinity" styleClass="combo-field"
+                                  promptText="Select format…"/>
+                    </VBox>
+                    <VBox spacing="5">
+                        <Label text="Target File Size" styleClass="field-label"/>
+                        <HBox alignment="CENTER_LEFT" spacing="8">
+                            <Label text="50 KB" styleClass="slider-limit"/>
+                            <Slider fx:id="sizeSlider"
+                                    HBox.hgrow="ALWAYS"
+                                    styleClass="size-slider"
+                                    showTickLabels="false" showTickMarks="false"/>
+                            <Label text="10 MB" styleClass="slider-limit"/>
+                        </HBox>
+                        <HBox alignment="CENTER" spacing="4">
+                            <Label text="Target:" styleClass="slider-label"/>
+                            <Label fx:id="sizeLabel" text="1.0 MB" styleClass="slider-value"/>
+                        </HBox>
+                    </VBox>
                 </VBox>
 
-                <!-- Target size slider -->
-                <VBox spacing="6">
-                    <Label text="Target File Size" styleClass="field-label"/>
-                    <HBox alignment="CENTER_LEFT" spacing="10">
-                        <Label text="50 KB" styleClass="slider-limit"/>
-                        <Slider fx:id="sizeSlider"
-                                HBox.hgrow="ALWAYS"
-                                styleClass="size-slider"
-                                showTickLabels="false"
-                                showTickMarks="false"/>
-                        <Label text="10 MB" styleClass="slider-limit"/>
+                <!-- ─ CONVERT PANEL (hidden by default) ─────────── -->
+                <VBox fx:id="convertPanel" spacing="10" managed="false" visible="false">
+                    <VBox spacing="5">
+                        <Label text="Output Format" styleClass="field-label"/>
+                        <ComboBox fx:id="convertFormatCombo"
+                                  maxWidth="Infinity" styleClass="combo-field"/>
+                    </VBox>
+                    <HBox spacing="10">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="DPI" styleClass="field-label"/>
+                            <ComboBox fx:id="convertDpiCombo"
+                                      maxWidth="Infinity" styleClass="combo-field"/>
+                        </VBox>
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Scale" styleClass="field-label"/>
+                            <ComboBox fx:id="convertScaleCombo"
+                                      maxWidth="Infinity" styleClass="combo-field"/>
+                        </VBox>
                     </HBox>
-                    <HBox alignment="CENTER" spacing="4">
-                        <Label text="Target:" styleClass="slider-label"/>
-                        <Label fx:id="sizeLabel" text="1.0 MB" styleClass="slider-value"/>
+                    <Label text="Full quality — no size limit applied."
+                           styleClass="convert-note"/>
+                </VBox>
+
+                <!-- ─ EXTRACT PANEL (hidden by default) ─────────── -->
+                <VBox fx:id="extractPanel" spacing="10" managed="false" visible="false">
+                    <VBox spacing="5">
+                        <Label text="Output Image Format" styleClass="field-label"/>
+                        <ComboBox fx:id="extractFormatCombo"
+                                  maxWidth="Infinity" styleClass="combo-field"/>
+                    </VBox>
+                    <HBox spacing="10">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Render DPI" styleClass="field-label"/>
+                            <ComboBox fx:id="extractDpiCombo"
+                                      maxWidth="Infinity" styleClass="combo-field"/>
+                        </VBox>
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Naming Preview" styleClass="field-label"/>
+                            <Label fx:id="extractPreviewLabel"
+                                   text="file_001.jpg"
+                                   styleClass="extract-preview-label"/>
+                        </VBox>
                     </HBox>
                 </VBox>
 
-                <!-- Output Naming -->
-                <VBox spacing="6">
+                <!-- ─ Output Naming (Compress + Convert modes) ───── -->
+                <VBox fx:id="outputNamingBox" spacing="5">
                     <Label text="Output Naming" styleClass="field-label"/>
-                    <HBox spacing="8" alignment="CENTER_LEFT">
-                        <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <HBox spacing="8">
+                        <VBox spacing="3" HBox.hgrow="ALWAYS">
                             <Label text="Prefix" styleClass="rename-micro-label"/>
                             <TextField fx:id="prefixField"
                                        promptText="e.g. web_"
                                        styleClass="rename-field"
                                        maxWidth="Infinity"/>
                         </VBox>
-                        <VBox spacing="4" HBox.hgrow="ALWAYS">
-                            <Label text="Suffix (before ext)" styleClass="rename-micro-label"/>
+                        <VBox spacing="3" HBox.hgrow="ALWAYS">
+                            <Label text="Suffix" styleClass="rename-micro-label"/>
                             <TextField fx:id="suffixField"
                                        text="_squeezed"
                                        styleClass="rename-field"
@@ -144,44 +231,58 @@
                     </HBox>
                 </VBox>
 
-                <!-- Info card -->
-                <VBox styleClass="info-card" spacing="6">
-                    <padding><Insets top="12" right="14" bottom="12" left="14"/></padding>
+                <!-- ─ Output Folder Card ─────────────────────────── -->
+                <VBox styleClass="output-folder-card" spacing="7">
+                    <padding><Insets top="10" right="12" bottom="10" left="12"/></padding>
+                    <Label text="📁  Output Folder" styleClass="info-title"/>
+                    <ComboBox fx:id="outputModeCombo"
+                              maxWidth="Infinity" styleClass="combo-field"/>
+                    <HBox fx:id="fixedPathBox" spacing="6"
+                          managed="false" visible="false">
+                        <TextField fx:id="fixedPathField"
+                                   promptText="C:\path\to\folder"
+                                   styleClass="rename-field"
+                                   HBox.hgrow="ALWAYS"/>
+                        <Button text="Browse"
+                                styleClass="btn-browse"
+                                onAction="#onBrowseOutputPath"/>
+                    </HBox>
+                </VBox>
+
+                <!-- ─ Info card ───────────────────────────────────── -->
+                <VBox styleClass="info-card" spacing="5">
+                    <padding><Insets top="10" right="12" bottom="10" left="12"/></padding>
                     <Label text="ℹ  How it works" styleClass="info-title"/>
                     <Label wrapText="true" styleClass="info-body"
-                           text="SqueezeIt uses a binary-search quality loop to find the highest possible quality that fits within your chosen size budget. PDF files are re-compressed by extracting and re-encoding embedded images. 100% local — no uploads."/>
+                           text="Compress: binary-search quality loop. Convert: full-quality transcode + optional scale. Extract: render each PDF page via PDFBox at chosen DPI. 100% local — no uploads."/>
                 </VBox>
 
                 <Region VBox.vgrow="ALWAYS"/>
 
-                <!-- Process button -->
+                <!-- ─ Process button ─────────────────────────────── -->
                 <Button fx:id="processButton"
                         text="⚡  Compress Files"
                         styleClass="btn-primary"
                         onAction="#onProcessClicked"
                         maxWidth="Infinity"
-                        minHeight="46"/>
+                        minHeight="44"/>
             </VBox>
         </HBox>
     </center>
 
-    <!-- ══════════════════════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════
          BOTTOM STATUS BAR
-         ══════════════════════════════════════════════════════════════ -->
+         ══════════════════════════════════════════════════ -->
     <bottom>
-        <VBox styleClass="status-bar" spacing="6">
-            <padding><Insets top="10" right="28" bottom="14" left="28"/></padding>
-
-            <HBox alignment="CENTER_LEFT" spacing="10">
-                <Label fx:id="statusLabel" text="Ready." styleClass="status-label" HBox.hgrow="ALWAYS"/>
+        <VBox styleClass="status-bar" spacing="5">
+            <padding><Insets top="8" right="28" bottom="12" left="28"/></padding>
+            <HBox alignment="CENTER_LEFT">
+                <Label fx:id="statusLabel" text="Ready." styleClass="status-label"/>
             </HBox>
-
             <ProgressBar fx:id="progressBar"
                          progress="0"
                          maxWidth="Infinity"
                          styleClass="main-progress"/>
-
-            <Label fx:id="resultLabel" text="" styleClass="result-label" wrapText="true"/>
         </VBox>
     </bottom>
 

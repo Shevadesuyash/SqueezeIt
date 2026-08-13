@@ -458,3 +458,195 @@
     -fx-effect: dropshadow(gaussian, rgba(108,99,255,0.3), 6, 0, 0, 0);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   v1.2 — MODE TOGGLE BAR  (Compress | Convert | Extract)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.mode-toggle-bar {
+    -fx-background-color: #0e1020;
+    -fx-border-color: #2e3350;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 3;
+}
+
+.toggle-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #6b7394;
+    -fx-font-size: 12px;
+    -fx-font-family: "Inter", "Segoe UI", sans-serif;
+    -fx-padding: 7 10 7 10;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+    -fx-background-radius: 6;
+}
+
+.toggle-btn:hover {
+    -fx-background-color: #1e2235;
+    -fx-text-fill: #c0c8e0;
+}
+
+.toggle-btn:selected {
+    -fx-background-color: linear-gradient(to bottom right, #6c63ff, #4a90e2);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(108,99,255,0.4), 8, 0, 0, 2);
+}
+
+.toggle-btn:disabled {
+    -fx-opacity: 0.35;
+    -fx-cursor: default;
+}
+
+.toggle-first {
+    -fx-background-radius: 5 0 0 5;
+}
+
+.toggle-mid {
+    -fx-background-radius: 0;
+}
+
+.toggle-last {
+    -fx-background-radius: 0 5 5 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v1.2 — RESULTS PANEL
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.results-scroll {
+    -fx-background: #0b0d16;
+    -fx-background-color: #0b0d16;
+    -fx-border-color: #1e2235;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.results-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.results-pane {
+    -fx-background-color: transparent;
+}
+
+.result-row {
+    -fx-background-color: #13162a;
+    -fx-background-radius: 7;
+    -fx-border-color: #1e2235;
+    -fx-border-width: 1;
+    -fx-border-radius: 7;
+    -fx-padding: 6 8 6 8;
+}
+
+.result-row:hover {
+    -fx-background-color: #1a1e35;
+    -fx-border-color: #3a3f6a;
+}
+
+.result-icon {
+    -fx-font-size: 16px;
+}
+
+.result-name {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e8ecf4;
+}
+
+.result-size {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #6b7394;
+}
+
+.btn-open {
+    -fx-background-color: #1e2235;
+    -fx-border-color: #2e3350;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-text-fill: #00d4aa;
+    -fx-font-size: 11px;
+    -fx-padding: 4 8 4 8;
+    -fx-cursor: hand;
+}
+
+.btn-open:hover {
+    -fx-background-color: #0f1f1c;
+    -fx-border-color: #00d4aa;
+    -fx-effect: dropshadow(gaussian, rgba(0,212,170,0.2), 4, 0, 0, 0);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v1.2 — OUTPUT FOLDER CARD
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.output-folder-card {
+    -fx-background-color: #0b0d16;
+    -fx-border-color: #2e3350;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v1.2 — MISC CONTROLS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.btn-remove {
+    -fx-background-color: transparent;
+    -fx-border-color: #3a2020;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-text-fill: #ff6b6b;
+    -fx-font-size: 11px;
+    -fx-padding: 3 8 3 8;
+    -fx-cursor: hand;
+}
+
+.btn-remove:hover {
+    -fx-background-color: #2a1010;
+    -fx-border-color: #ff6b6b;
+}
+
+.btn-remove:disabled {
+    -fx-opacity: 0.3;
+    -fx-cursor: default;
+}
+
+.btn-browse {
+    -fx-background-color: #1e2235;
+    -fx-border-color: #2e3350;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-text-fill: #a0aec0;
+    -fx-font-size: 11px;
+    -fx-padding: 5 10 5 10;
+    -fx-cursor: hand;
+}
+
+.btn-browse:hover {
+    -fx-background-color: #252a42;
+    -fx-border-color: #6c63ff;
+    -fx-text-fill: #e8ecf4;
+}
+
+.convert-note {
+    -fx-font-size: 10px;
+    -fx-text-fill: #4a5090;
+    -fx-font-style: italic;
+}
+
+.extract-preview-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #00d4aa;
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-padding: 5 8 5 8;
+    -fx-background-color: #0f1f1c;
+    -fx-background-radius: 4;
+}
+
