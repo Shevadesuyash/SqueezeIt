@@ -386,3 +386,75 @@
     -fx-background-color: transparent;
     -fx-padding: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v1.1 — SIZE PREVIEW CARD
+   ═══════════════════════════════════════════════════════════════════════ */
+.preview-card {
+    -fx-background-color: #0f1f1c;
+    -fx-border-color: #00d4aa;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(0,212,170,0.15), 10, 0, 0, 0);
+}
+
+.preview-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #00d4aa;
+}
+
+.preview-label-muted {
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #6b7394;
+}
+
+.preview-before {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e8ecf4;
+}
+
+.preview-after {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #00d4aa;
+}
+
+.preview-arrow {
+    -fx-font-size: 14px;
+    -fx-text-fill: #6b7394;
+}
+
+.preview-reduction {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #00d4aa;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v1.1 — RENAME FIELDS
+   ═══════════════════════════════════════════════════════════════════════ */
+.rename-micro-label {
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #6b7394;
+}
+
+.rename-field {
+    -fx-background-color: #1a1d27;
+    -fx-border-color: #2e3350;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: #e8ecf4;
+    -fx-prompt-text-fill: #4a5090;
+    -fx-font-size: 12px;
+    -fx-padding: 5 8 5 8;
+}
+
+.rename-field:focused {
+    -fx-border-color: #6c63ff;
+    -fx-effect: dropshadow(gaussian, rgba(108,99,255,0.3), 6, 0, 0, 0);
+}
+

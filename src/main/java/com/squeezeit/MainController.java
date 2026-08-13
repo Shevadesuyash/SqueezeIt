@@ -9,8 +9,6 @@ import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 
 import java.io.File;
@@ -26,24 +24,37 @@ import java.util.stream.Collectors;
  *   <li>Drag-and-drop file acceptance from the OS shell.</li>
  *   <li>Compression/conversion task dispatch onto a background thread.</li>
  *   <li>Real-time UI updates: progress bar, status label, file list.</li>
+ *   <li>Live size preview card (before → target estimate).</li>
+ *   <li>PDF → PDF re-compression via {@link CompressionEngine#recompressPdf}.</li>
+ *   <li>Batch rename with user-defined prefix/suffix.</li>
+ *   <li>History logging via {@link HistoryLog}.</li>
  * </ul>
  */
 public class MainController implements Initializable {
 
     /* ── FXML-injected UI nodes ─────────────────────────────────────── */
 
-    @FXML private VBox         dropZone;
-    @FXML private Label        dropZoneLabel;
+    @FXML private VBox          dropZone;
+    @FXML private Label         dropZoneLabel;
     @FXML private ListView<String> fileListView;
     @FXML private ComboBox<String> formatCombo;
-    @FXML private Slider       sizeSlider;
-    @FXML private Label        sizeLabel;
-    @FXML private Label        sizeUnitLabel;
-    @FXML private Button       processButton;
-    @FXML private Button       clearButton;
-    @FXML private ProgressBar  progressBar;
-    @FXML private Label        statusLabel;
-    @FXML private Label        resultLabel;
+    @FXML private Slider        sizeSlider;
+    @FXML private Label         sizeLabel;
+    @FXML private Button        processButton;
+    @FXML private Button        clearButton;
+    @FXML private ProgressBar   progressBar;
+    @FXML private Label         statusLabel;
+    @FXML private Label         resultLabel;
+
+    // Rename fields
+    @FXML private TextField     prefixField;
+    @FXML private TextField     suffixField;
+
+    // Size preview card
+    @FXML private VBox          previewCard;
+    @FXML private Label         previewBefore;
+    @FXML private Label         previewAfter;
+    @FXML private Label         previewReduction;
 
     /* ── State ─────────────────────────────────────────────────────── */
 
@@ -69,8 +80,13 @@ public class MainController implements Initializable {
         sizeSlider.setValue(1_000_000);
         updateSizeLabel(1_000_000);
 
-        sizeSlider.valueProperty().addListener((obs, oldV, newV) ->
-                updateSizeLabel(newV.longValue()));
+        sizeSlider.valueProperty().addListener((obs, oldV, newV) -> {
+            updateSizeLabel(newV.longValue());
+            updatePreviewCard();
+        });
+
+        // Update preview when format changes
+        formatCombo.valueProperty().addListener((obs, o, n) -> updatePreviewCard());
 
         // ── Progress bar ─────────────────────────────────────────────
         progressBar.setProgress(0);
@@ -85,6 +101,47 @@ public class MainController implements Initializable {
 
     private void updateSizeLabel(long bytes) {
         sizeLabel.setText(CompressionEngine.humanSize(bytes));
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       SIZE PREVIEW CARD
+       ═══════════════════════════════════════════════════════════════════ */
+
+    /**
+     * Refreshes the before/after preview card based on queued files + slider.
+     * Called whenever files are added, slider moves, or format changes.
+     */
+    private void updatePreviewCard() {
+        if (queuedFiles.isEmpty()) {
+            previewCard.setManaged(false);
+            previewCard.setVisible(false);
+            return;
+        }
+
+        long totalBefore = queuedFiles.stream().mapToLong(File::length).sum();
+        long target      = (long) sizeSlider.getValue();
+
+        // For multi-file queues the target is per-file (or total for PDF merge)
+        String format = formatCombo.getValue();
+        long estimatedAfter;
+        if ("PDF".equalsIgnoreCase(format)) {
+            // PDF output = single file at target
+            estimatedAfter = Math.min(target, totalBefore);
+        } else {
+            // Each file independently targeted
+            estimatedAfter = Math.min(target * queuedFiles.size(), totalBefore);
+        }
+
+        double saving = totalBefore > 0
+                ? (1.0 - (double) estimatedAfter / totalBefore) * 100.0
+                : 0.0;
+
+        previewBefore.setText(CompressionEngine.humanSize(totalBefore));
+        previewAfter.setText("~" + CompressionEngine.humanSize(estimatedAfter));
+        previewReduction.setText(String.format("%.0f%%", Math.max(0, saving)));
+
+        previewCard.setManaged(true);
+        previewCard.setVisible(true);
     }
 
     /* ═══════════════════════════════════════════════════════════════════
@@ -164,6 +221,8 @@ public class MainController implements Initializable {
         resultLabel.setText("");
         processButton.setDisable(false);
         dropZoneLabel.setText("Drop files here  or  click to browse");
+        previewCard.setManaged(false);
+        previewCard.setVisible(false);
     }
 
     @FXML
@@ -173,8 +232,11 @@ public class MainController implements Initializable {
             return;
         }
 
-        String format = formatCombo.getValue();
-        long targetBytes = (long) sizeSlider.getValue();
+        String format      = formatCombo.getValue();
+        long   targetBytes = (long) sizeSlider.getValue();
+        String prefix      = prefixField  != null ? prefixField.getText().trim()  : "";
+        String suffix      = suffixField  != null ? suffixField.getText().trim()  : "_squeezed";
+        if (suffix.isEmpty()) suffix = "_squeezed";
 
         // Choose output directory (same dir as first file)
         File outputDir = queuedFiles.get(0).getParentFile();
@@ -185,7 +247,7 @@ public class MainController implements Initializable {
         resultLabel.setText("");
         setStatus("Preparing…", false);
 
-        activeTask = buildCompressionTask(queuedFiles, format, targetBytes, outputDir);
+        activeTask = buildCompressionTask(queuedFiles, format, targetBytes, outputDir, prefix, suffix);
 
         progressBar.progressProperty().bind(activeTask.progressProperty());
 
@@ -219,11 +281,21 @@ public class MainController implements Initializable {
     /**
      * Builds a {@link Task} that compresses/converts all queued files on a
      * background thread and returns a human-readable result summary.
+     *
+     * @param files       snapshot of queued files
+     * @param format      output format (JPEG / PNG / WEBP / PDF)
+     * @param targetBytes target size in bytes per output file
+     * @param outputDir   directory where output files are saved
+     * @param prefix      filename prefix (may be empty)
+     * @param suffix      filename suffix before extension (e.g. "_squeezed")
      */
     private Task<String> buildCompressionTask(
-            List<File> files, String format, long targetBytes, File outputDir) {
+            List<File> files, String format, long targetBytes,
+            File outputDir, String prefix, String suffix) {
 
-        List<File> snapshot = new ArrayList<>(files);
+        List<File> snapshot      = new ArrayList<>(files);
+        String     suffixFinal   = suffix;
+        String     prefixFinal   = prefix;
 
         return new Task<>() {
             @Override
@@ -246,51 +318,73 @@ public class MainController implements Initializable {
                                 CompressionEngine.getExtension(f)))
                         .collect(Collectors.toList());
 
-                // ── Case 1: Merge images into a single PDF ────────────
+                // ── Case 1: Merge images → single PDF ────────────────
                 if (makePdf && !images.isEmpty()) {
                     updateMessage("Building PDF from " + images.size() + " image(s)…");
-                    String baseName = stripExtension(images.get(0).getName());
+                    String baseName = prefixFinal + stripExtension(images.get(0).getName()) + suffixFinal;
                     File out = resolveOutput(outputDir, baseName, "pdf");
 
                     CompressionEngine.convertImagesToPdf(
                             images, out, targetBytes,
                             p -> updateProgress(p * 0.9, 1.0));
 
-                    long inTotal  = images.stream().mapToLong(File::length).sum();
-                    long outSize  = out.length();
+                    long inTotal = images.stream().mapToLong(File::length).sum();
+                    long outSize = out.length();
                     results.append(String.format(
                             "📄 %s  (%s → %s)%n",
                             out.getName(),
                             CompressionEngine.humanSize(inTotal),
                             CompressionEngine.humanSize(outSize)));
+
+                    // Log each source image as contributing to this PDF
+                    for (File img : images) {
+                        HistoryLog.append(img, out, format, targetBytes);
+                    }
                 }
 
                 // ── Case 2: Compress each file individually ───────────
                 int processed = 0;
-                for (File file : (makePdf ? pdfs : snapshot)) {
-                    String ext = CompressionEngine.getExtension(file);
+                List<File> toProcess = makePdf ? pdfs : snapshot;
+
+                for (File file : toProcess) {
+                    String ext    = CompressionEngine.getExtension(file);
                     String outExt = makePdf ? "pdf" : format.toLowerCase().replace("jpeg", "jpg");
-                    String baseName = stripExtension(file.getName());
-                    File out = resolveOutput(outputDir, baseName + "_squeezed", outExt);
+                    String baseName = prefixFinal + stripExtension(file.getName()) + suffixFinal;
+                    File out = resolveOutput(outputDir, baseName, outExt);
 
                     updateMessage("Processing: " + file.getName());
 
                     long inSize = file.length();
 
                     if (CompressionEngine.isPdf(ext)) {
-                        // For now: PDF → PDF re-embedding is not supported standalone;
-                        // inform user PDFs need image extraction (future feature).
+                        // ── PDF → PDF re-compression ──────────────────
+                        final int snap = processed;
+                        CompressionEngine.recompressPdf(
+                                file, out, targetBytes,
+                                p -> {
+                                    double base = (double) snap / total;
+                                    double step = 1.0 / total;
+                                    updateProgress(base + p * step, 1.0);
+                                });
+
+                        long outSize = out.length();
+                        double ratio = inSize > 0 ? (1.0 - (double) outSize / inSize) * 100 : 0;
                         results.append(String.format(
-                                "⚠  %s – direct PDF-to-PDF re-compression not yet supported.%n",
-                                file.getName()));
+                                "📑  %s  (%s → %s, %.0f%% smaller)%n",
+                                out.getName(),
+                                CompressionEngine.humanSize(inSize),
+                                CompressionEngine.humanSize(outSize),
+                                ratio));
+                        HistoryLog.append(file, out, "PDF", targetBytes);
+
                     } else {
+                        // ── Image compression ─────────────────────────
                         String fmt = makePdf ? "JPEG" : format;
-                        // Capture loop counter as effectively-final for lambda
-                        final int processedSnap = processed;
+                        final int snap = processed;
                         CompressionEngine.compressImageToTargetSize(
                                 file, out, targetBytes, fmt,
                                 p -> {
-                                    double base = (double) processedSnap / total;
+                                    double base = (double) snap / total;
                                     double step = 1.0 / total;
                                     updateProgress(base + p * step, 1.0);
                                 });
@@ -303,6 +397,7 @@ public class MainController implements Initializable {
                                 CompressionEngine.humanSize(inSize),
                                 CompressionEngine.humanSize(outSize),
                                 ratio));
+                        HistoryLog.append(file, out, format, targetBytes);
                     }
 
                     processed++;
@@ -329,6 +424,7 @@ public class MainController implements Initializable {
         int count = queuedFiles.size();
         dropZoneLabel.setText(count + " file" + (count == 1 ? "" : "s") + " queued");
         setStatus("Ready to compress.", false);
+        updatePreviewCard();
     }
 
     private void setStatus(String message, boolean isError) {

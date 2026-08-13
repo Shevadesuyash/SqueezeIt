@@ -21,6 +21,10 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.graphics.image.JPEGFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.pdmodel.PDResources;
+import org.apache.pdfbox.Loader;
 
 /**
  * Core compression engine for SqueezeIt.
@@ -334,6 +338,128 @@ public final class CompressionEngine {
             List<File> inputImages, File outputPdfFile, long targetSizeBytes)
             throws IOException {
         convertImagesToPdf(inputImages, outputPdfFile, targetSizeBytes, null);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       3. PDF → PDF RE-COMPRESSION
+       ═══════════════════════════════════════════════════════════════ */
+
+    /**
+     * Recompresses an existing PDF by extracting all embedded images,
+     * re-encoding them as JPEG at a binary-search quality, and writing a new
+     * smaller PDF to {@code outputPdfFile}.
+     *
+     * <p>Pages that contain no raster images (e.g. pure-text pages) are copied
+     * verbatim; their content is preserved without modification.
+     *
+     * @param inputPdf        source PDF file
+     * @param outputPdf       destination PDF file (may be same path – uses temp)
+     * @param targetSizeBytes desired maximum PDF size in bytes
+     * @param progressCallback optional [0.0, 1.0] callback; may be {@code null}
+     * @throws IOException if reading/writing fails
+     */
+    public static void recompressPdf(
+            File inputPdf,
+            File outputPdf,
+            long targetSizeBytes,
+            Consumer<Double> progressCallback) throws IOException {
+
+        notifyProgress(progressCallback, 0.02);
+
+        // ── 1. Binary-search the JPEG quality that hits the target size ─────
+        float lo = MIN_QUALITY;
+        float hi = 0.95f;
+        float bestQuality = lo;
+
+        // Quick probe pass to see whether even maximum quality fits
+        long probeSize = probePdfSize(inputPdf, hi);
+        if (probeSize <= targetSizeBytes) {
+            // Already fits at near-original quality – just re-encode at hi
+            bestQuality = hi;
+        } else {
+            for (int iter = 0; iter < MAX_ITERATIONS; iter++) {
+                float mid = (lo + hi) / 2f;
+                long size = probePdfSize(inputPdf, mid);
+                if (size <= targetSizeBytes) {
+                    bestQuality = mid;
+                    lo = mid;
+                } else {
+                    hi = mid;
+                }
+                notifyProgress(progressCallback, 0.05 + 0.70 * ((double)(iter + 1) / MAX_ITERATIONS));
+                if (hi - lo < 0.005f) break;
+            }
+        }
+
+        notifyProgress(progressCallback, 0.75);
+
+        // ── 2. Final write with the chosen quality ──────────────────────
+        writePdfRecompressed(inputPdf, outputPdf, bestQuality);
+        notifyProgress(progressCallback, 1.0);
+    }
+
+    /**
+     * Overload without progress callback.
+     */
+    public static void recompressPdf(File inputPdf, File outputPdf, long targetSizeBytes)
+            throws IOException {
+        recompressPdf(inputPdf, outputPdf, targetSizeBytes, null);
+    }
+
+    /**
+     * Probe: re-encode the PDF at {@code quality} to a temp file and return its size.
+     */
+    private static long probePdfSize(File inputPdf, float quality) throws IOException {
+        File temp = File.createTempFile("sq_probe_", ".pdf");
+        temp.deleteOnExit();
+        try {
+            writePdfRecompressed(inputPdf, temp, quality);
+            return temp.length();
+        } finally {
+            temp.delete();
+        }
+    }
+
+    /**
+     * Opens {@code inputPdf}, replaces every raster image resource on every page
+     * with a JPEG re-encoded at {@code jpegQuality}, and saves to {@code outputPdf}.
+     */
+    private static void writePdfRecompressed(
+            File inputPdf, File outputPdf, float jpegQuality) throws IOException {
+
+        try (PDDocument doc = Loader.loadPDF(inputPdf)) {
+            int pageCount = doc.getNumberOfPages();
+
+            for (int p = 0; p < pageCount; p++) {
+                PDPage page = doc.getPage(p);
+                PDResources resources = page.getResources();
+                if (resources == null) continue;
+
+                // Iterate all named XObject resources on this page
+                for (COSName name : resources.getXObjectNames()) {
+                    try {
+                        var xobj = resources.getXObject(name);
+                        if (!(xobj instanceof PDImageXObject srcImg)) continue;
+
+                        // Extract the raster bitmap
+                        BufferedImage bimg = srcImg.getImage();
+                        if (bimg == null) continue;
+
+                        // Convert to RGB (JPEG does not support alpha)
+                        bimg = toRGB(bimg);
+
+                        // Re-encode as JPEG at chosen quality and replace in-place
+                        PDImageXObject newImg = JPEGFactory.createFromImage(doc, bimg, jpegQuality);
+                        resources.put(name, newImg);
+
+                    } catch (Exception ignored) {
+                        // Skip unreadable or non-image XObjects silently
+                    }
+                }
+            }
+
+            doc.save(outputPdf);
+        }
     }
 
     /**

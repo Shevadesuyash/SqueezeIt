@@ -21,7 +21,7 @@
                 <Label text="Local Photo &amp; PDF Compressor · 100% Private" styleClass="app-subtitle"/>
             </VBox>
             <Region HBox.hgrow="ALWAYS"/>
-            <Label text="v1.0" styleClass="version-badge"/>
+            <Label text="v1.1" styleClass="version-badge"/>
         </HBox>
     </top>
 
@@ -32,7 +32,7 @@
         <HBox spacing="20" styleClass="content-area">
             <padding><Insets top="20" right="28" bottom="20" left="28"/></padding>
 
-            <!-- ── LEFT PANEL: Drop Zone + File List ─────────────────── -->
+            <!-- ── LEFT PANEL: Drop Zone + File List + Size Preview ──── -->
             <VBox spacing="14" HBox.hgrow="ALWAYS" styleClass="panel">
                 <Label text="Input Files" styleClass="section-title"/>
 
@@ -41,7 +41,7 @@
                       styleClass="drop-zone"
                       alignment="CENTER"
                       spacing="10"
-                      minHeight="160"
+                      minHeight="150"
                       onDragOver="#onDragOver"
                       onDragExited="#onDragExited"
                       onDragDropped="#onDragDropped">
@@ -57,11 +57,32 @@
                 <ListView fx:id="fileListView"
                           styleClass="file-list"
                           VBox.vgrow="ALWAYS"
-                          minHeight="160">
+                          minHeight="130">
                     <placeholder>
                         <Label text="No files queued yet" styleClass="drop-hint"/>
                     </placeholder>
                 </ListView>
+
+                <!-- ── Size Preview Card ─────────────────────────────── -->
+                <VBox fx:id="previewCard" styleClass="preview-card" spacing="6" managed="false" visible="false">
+                    <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
+                    <Label text="📊  Size Estimate" styleClass="preview-title"/>
+                    <HBox spacing="14" alignment="CENTER_LEFT">
+                        <VBox spacing="2" HBox.hgrow="ALWAYS">
+                            <Label text="Before" styleClass="preview-label-muted"/>
+                            <Label fx:id="previewBefore" text="—" styleClass="preview-before"/>
+                        </VBox>
+                        <Label text="→" styleClass="preview-arrow"/>
+                        <VBox spacing="2" HBox.hgrow="ALWAYS">
+                            <Label text="Target" styleClass="preview-label-muted"/>
+                            <Label fx:id="previewAfter" text="—" styleClass="preview-after"/>
+                        </VBox>
+                        <VBox spacing="2">
+                            <Label text="Saving" styleClass="preview-label-muted"/>
+                            <Label fx:id="previewReduction" text="—" styleClass="preview-reduction"/>
+                        </VBox>
+                    </HBox>
+                </VBox>
 
                 <!-- Clear button -->
                 <Button fx:id="clearButton"
@@ -72,7 +93,7 @@
             </VBox>
 
             <!-- ── RIGHT PANEL: Settings + Controls ──────────────────── -->
-            <VBox spacing="18" minWidth="280" maxWidth="320" styleClass="panel">
+            <VBox spacing="16" minWidth="290" maxWidth="330" styleClass="panel">
                 <Label text="Compression Settings" styleClass="section-title"/>
 
                 <!-- Format selector -->
@@ -102,12 +123,33 @@
                     </HBox>
                 </VBox>
 
+                <!-- Output Naming -->
+                <VBox spacing="6">
+                    <Label text="Output Naming" styleClass="field-label"/>
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <VBox spacing="4" HBox.hgrow="ALWAYS">
+                            <Label text="Prefix" styleClass="rename-micro-label"/>
+                            <TextField fx:id="prefixField"
+                                       promptText="e.g. web_"
+                                       styleClass="rename-field"
+                                       maxWidth="Infinity"/>
+                        </VBox>
+                        <VBox spacing="4" HBox.hgrow="ALWAYS">
+                            <Label text="Suffix (before ext)" styleClass="rename-micro-label"/>
+                            <TextField fx:id="suffixField"
+                                       text="_squeezed"
+                                       styleClass="rename-field"
+                                       maxWidth="Infinity"/>
+                        </VBox>
+                    </HBox>
+                </VBox>
+
                 <!-- Info card -->
                 <VBox styleClass="info-card" spacing="6">
                     <padding><Insets top="12" right="14" bottom="12" left="14"/></padding>
                     <Label text="ℹ  How it works" styleClass="info-title"/>
                     <Label wrapText="true" styleClass="info-body"
-                           text="SqueezeIt uses a binary-search quality loop to find the highest possible quality that fits within your chosen size budget. All processing is 100% local — no uploads, no data leaves your machine."/>
+                           text="SqueezeIt uses a binary-search quality loop to find the highest possible quality that fits within your chosen size budget. PDF files are re-compressed by extracting and re-encoding embedded images. 100% local — no uploads."/>
                 </VBox>
 
                 <Region VBox.vgrow="ALWAYS"/>
